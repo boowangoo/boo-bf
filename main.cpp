@@ -10,7 +10,7 @@ int brainFkSM(char);
 
 std::ifstream file;
 char* bytes = new char[BITQUANT];
-unsigned int dataPt = 0;
+long dataPt = 0;
 int bracketCnt = 0;
 
 int main(int argc, char* argv[]) {
@@ -26,10 +26,14 @@ int main(int argc, char* argv[]) {
         brainFkSM(c);
     }
 
+    std::cout << std::endl;
+
     file.close();
 
     return 0;
 }
+
+int maxSP = 0;
 
 int brainFkSM(char c) {
     switch (c) {
@@ -59,7 +63,7 @@ int brainFkSM(char c) {
             std::cout << bytes[dataPt];
             return 0;
         case ',':
-            // TODO: LAST
+            std::cin.get(bytes[dataPt]);
             return 0;
         case '[':
             if (bytes[dataPt]) {

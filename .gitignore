@@ -34,3 +34,4 @@
 # other
 .vscode
 output
+temp*.txt
