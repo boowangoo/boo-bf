@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <bitset>
+#include <vector>
 
 #define BITQUANT 30000
 
@@ -13,6 +13,9 @@ char* bytes = new char[BITQUANT];
 long dataPt = 0;
 int bracketCnt = 0;
 
+std::vector<char> codes;
+std::vector<char>::iterator it;
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "ERROR: bad args" << std::endl;
@@ -23,7 +26,11 @@ int main(int argc, char* argv[]) {
     
     char c;
     while (file.get(c)) {
-        brainFkSM(c);
+        codes.push_back(c);
+    }
+
+    for (it = codes.begin(); it != codes.end(); it++) {
+        brainFkSM(*it);
     }
 
     std::cout << std::endl;
@@ -32,8 +39,6 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
-int maxSP = 0;
 
 int brainFkSM(char c) {
     switch (c) {
@@ -46,18 +51,10 @@ int brainFkSM(char c) {
             dataPt++;
             return 1;
         case '+':
-            if (bytes[dataPt] == 255) {
-                bytes[dataPt] = 0;
-            } else {
-                bytes[dataPt]++;
-            }
+            bytes[dataPt]++;
             return 0;
         case '-':
-            if (bytes[dataPt] == 0) {
-                bytes[dataPt] = 255;
-            } else {
-                bytes[dataPt]--;
-            }
+            bytes[dataPt]--;
             return 0;
         case '.':
             std::cout << bytes[dataPt];
@@ -70,10 +67,10 @@ int brainFkSM(char c) {
                 return 0;
             }
             bracketCnt++;
-            while(file.get(c)) {
-                if (c == '[') {
+            while (*(++it)) {
+                if (*it == '[') {
                     bracketCnt++;
-                } else if (c == ']') {
+                } else if (*it == ']') {
                     bracketCnt--;
                     if (bracketCnt == 0) {
                         break;
@@ -87,10 +84,10 @@ int brainFkSM(char c) {
             }
             bracketCnt--;
      
-            while(goBack(c)) {
-                if (c == ']') {
+            while(*(--it)) {
+                if (*it == ']') {
                     bracketCnt--;
-                } else if (c == '[') {
+                } else if (*it == '[') {
                     bracketCnt++;
                     if (bracketCnt == 0) {
                         break;
@@ -99,14 +96,11 @@ int brainFkSM(char c) {
             }
             return 0;
         default:
-            return -1;
+            return 0;
     }
 }
 
 bool goBack(char &c) {
-    if (file.tellg() < 2) {
-        return false;
-    }
     file.seekg(-2, file.cur);   
     return file.get(c) ? true : false;
 }
