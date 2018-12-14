@@ -1,4 +1,4 @@
-OBJS=main.cpp
+OBJS=boo_bf.cpp main.cpp
 
 CC=g++
 

@@ -1,20 +1,18 @@
-#include <iostream>
 #include <fstream>
-#include <string>
-#include <vector>
 
-#define BITQUANT 30000
+#include "boo_bf.h"
 
 bool goBack(char&);
-int brainFkSM(char);
+void parse(std::vector<char>::iterator&, std::vector<std::function<RESULTS()>>&);
+void checkBrackets(std::vector<char>::iterator &, std::vector<std::function<RESULTS()>>&);
+int checkRepeats(std::vector<char>::iterator&);
 
 std::ifstream file;
 char* bytes = new char[BITQUANT];
-long dataPt = 0;
+long dataPtr = 0;
 int bracketCnt = 0;
 
 std::vector<char> codes;
-std::vector<char>::iterator it;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -24,13 +22,20 @@ int main(int argc, char* argv[]) {
 
     file.open(argv[1]);
     
+    std::vector<int> lBrackPos;
     char c;
     while (file.get(c)) {
         codes.push_back(c);
     }
 
-    for (it = codes.begin(); it != codes.end(); it++) {
-        brainFkSM(*it);
+    std::vector<std::function<RESULTS()>> calls;
+
+    for (auto it = codes.begin(); it != codes.end(); it++) {
+        parse(it, calls);
+    }
+
+    for (auto call: calls) {
+        call();
     }
 
     std::cout << std::endl;
@@ -40,64 +45,50 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-int brainFkSM(char c) {
-    switch (c) {
+void parse(std::vector<char>::iterator &it, std::vector<std::function<RESULTS()>> &calls) {
+    switch (*it) {
         case '>':
-            if (++dataPt < BITQUANT) { return 0; }
-            dataPt--;
-            return 1;
+            calls.push_back([&] { return bfRight(dataPtr, checkRepeats(it)); });
+            break;
         case '<':
-            if (--dataPt >= 0) { return 0; }
-            dataPt++;
-            return 1;
+            calls.push_back([&] { return bfLeft(dataPtr, checkRepeats(it)); });
+            break;
         case '+':
-            bytes[dataPt]++;
-            return 0;
+            calls.push_back([&] { return bfPlus(bytes[dataPtr], checkRepeats(it)); });
+            break;
         case '-':
-            bytes[dataPt]--;
-            return 0;
+            calls.push_back([&] { return bfMinus(bytes[dataPtr], checkRepeats(it)); });
+            break;
         case '.':
-            std::cout << bytes[dataPt];
-            return 0;
+            calls.push_back([] { return bfOutput(bytes[dataPtr]); });
+            break;
         case ',':
-            std::cin.get(bytes[dataPt]);
-            return 0;
+            calls.push_back([&] { return bfInput(bytes[dataPtr]); });
+            break;
         case '[':
-            if (bytes[dataPt]) {
-                return 0;
-            }
-            bracketCnt++;
-            while (*(++it)) {
-                if (*it == '[') {
-                    bracketCnt++;
-                } else if (*it == ']') {
-                    bracketCnt--;
-                    if (bracketCnt == 0) {
-                        break;
-                    }
-                }
-            }
-            return 0;   
+            break;
         case ']':
-            if (!bytes[dataPt]) {
-                return 0;
-            }
-            bracketCnt--;
-     
-            while(*(--it)) {
-                if (*it == ']') {
-                    bracketCnt--;
-                } else if (*it == '[') {
-                    bracketCnt++;
-                    if (bracketCnt == 0) {
-                        break;
-                    }
-                }
-            }
-            return 0;
+            break;
         default:
-            return 0;
+            break;
     }
+}
+
+void checkBrackets(std::vector<char>::iterator &it, std::vector<std::function<RESULTS()>> &calls) {
+    if (it + 1 < codes.end()) {
+        auto start = ++it;
+    }
+    int i = 1;
+    int bracketCnt = 1;
+}
+
+int checkRepeats(std::vector<char>::iterator &it) {
+    int i = 1;
+    while (*(it + i) == *it) {
+        i++;
+    }
+    it += i - 1;
+    return i;
 }
 
 bool goBack(char &c) {
