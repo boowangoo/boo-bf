@@ -1,18 +1,22 @@
 #include <fstream>
+#include <map>
 
 #include "boo_bf.h"
 
-bool goBack(char&);
-void parse(std::vector<char>::iterator&, std::vector<std::function<RESULTS()>>&);
-void checkBrackets(std::vector<char>::iterator &, std::vector<std::function<RESULTS()>>&);
-int checkRepeats(std::vector<char>::iterator&);
+typedef std::vector<char>::iterator iterator;
+
+void parse(iterator&, std::vector<RESULTS_FN>&);
+int checkRepeats(iterator&);
+RESULTS_FN checkBrackets(iterator&, std::vector<RESULTS_FN>&);
 
 std::ifstream file;
 char* bytes = new char[BITQUANT];
 long dataPtr = 0;
-int bracketCnt = 0;
 
 std::vector<char> codes;
+std::map<iterator, iterator> brackets;
+
+std::vector<RESULTS_FN> calls;
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
@@ -22,13 +26,18 @@ int main(int argc, char* argv[]) {
 
     file.open(argv[1]);
     
-    std::vector<int> lBrackPos;
+    std::vector<iterator> lBrackets;
     char c;
     while (file.get(c)) {
         codes.push_back(c);
+        if (c == '[') {
+            lBrackets.push_back(codes.end() - 1);
+        } else if (c == ']' && lBrackets.size() > 0) {
+            iterator lBrack = lBrackets.back();
+            lBrackets.pop_back();
+            brackets.insert(lBrack, codes.end() - 1);
+        }
     }
-
-    std::vector<std::function<RESULTS()>> calls;
 
     for (auto it = codes.begin(); it != codes.end(); it++) {
         parse(it, calls);
@@ -45,7 +54,7 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void parse(std::vector<char>::iterator &it, std::vector<std::function<RESULTS()>> &calls) {
+void parse(iterator &it, std::vector<RESULTS_FN> &calls) {
     switch (*it) {
         case '>':
             calls.push_back([&] { return bfRight(dataPtr, checkRepeats(it)); });
@@ -66,32 +75,49 @@ void parse(std::vector<char>::iterator &it, std::vector<std::function<RESULTS()>
             calls.push_back([&] { return bfInput(bytes[dataPtr]); });
             break;
         case '[':
+            calls.push_back(checkBrackets(it, calls));
             break;
         case ']':
-            break;
         default:
             break;
     }
 }
 
-void checkBrackets(std::vector<char>::iterator &it, std::vector<std::function<RESULTS()>> &calls) {
-    if (it + 1 < codes.end()) {
-        auto start = ++it;
+RESULTS_FN checkBrackets(iterator &it, std::vector<RESULTS_FN> &calls) {
+    if ( brackets.find(it) == brackets.end() ) {
+        return [&] { return NO_BRACKET_PAIR; };
     }
-    int i = 1;
-    int bracketCnt = 1;
+
+    auto start = it + 1;
+    auto end = brackets[it];
+
+    if (start + 1 == end && (*start = '+' || *start == '-')) {
+        return [&] {
+            bytes[dataPtr] = 0;
+            return SUCCESS;
+        };
+    }
+
+    std::vector<RESULTS_FN> brackCalls;
+    for (auto it = start; it != end; it++) {
+        parse(it, brackCalls);
+    }
+
+    return [&] {
+        RESULTS result;
+        for (auto call: brackCalls) {
+            result = call();
+            if (result != SUCCESS) { return result; }
+        }
+        return SUCCESS;
+    };
 }
 
-int checkRepeats(std::vector<char>::iterator &it) {
+int checkRepeats(iterator &it) {
     int i = 1;
     while (*(it + i) == *it) {
         i++;
     }
     it += i - 1;
     return i;
-}
-
-bool goBack(char &c) {
-    file.seekg(-2, file.cur);   
-    return file.get(c) ? true : false;
 }

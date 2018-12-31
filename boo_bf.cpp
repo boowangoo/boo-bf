@@ -36,7 +36,7 @@ RESULTS bfOutput(char cell) {
     return SUCCESS;
 }
 
-RESULTS bfLoop(char *bytes, long &dataPtr, std::vector<std::function<RESULTS()>> fns) {
+RESULTS bfLoop(char *bytes, long &dataPtr, std::vector<RESULTS_FN> fns) {
     while (bytes[dataPtr]) {
         for (auto fn: fns) { fn(); }
     }
